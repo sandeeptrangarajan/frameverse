@@ -2,9 +2,19 @@
   "name": "frameverse-2026",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "build": "npm --prefix frontend install && npm --prefix frontend run build",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "deploy": "vercel"
+    "dev": "npm --prefix frontend run dev"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.0"
   }
 }
