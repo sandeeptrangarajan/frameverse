@@ -1299,11 +1299,6 @@ export default function Admin() {
               </form>
 
               {message && <div className="login-error-alert">{message}</div>}
-
-              <div className="login-hint-badge">
-                <span>Default Local User:</span>
-                <code>admin / admin123</code>
-              </div>
             </div>
           </div>
         ) : (
