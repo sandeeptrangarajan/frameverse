@@ -130,6 +130,108 @@ def admin_registrations():
         return jsonify(message="Could not load registrations."), 500
 
 
+@app.route("/api/admin/registrations/<registration_id>", methods=["DELETE"])
+def admin_delete_registration_by_id(registration_id):
+    if session.get("is_admin") is not True:
+        return jsonify(message="Admin login required."), 401
+
+    academic_year = request.args.get("academic_year")
+    deleted = False
+
+    try:
+        with connect_db() as db:
+            if academic_year and academic_year in YEAR_TABLES:
+                table = YEAR_TABLES[academic_year]
+                cur = db.execute(
+                    f"DELETE FROM {table} WHERE registration_id = ?",
+                    (registration_id,),
+                )
+                if cur.rowcount > 0:
+                    deleted = True
+            else:
+                for table in YEAR_TABLES.values():
+                    cur = db.execute(
+                        f"DELETE FROM {table} WHERE registration_id = ?",
+                        (registration_id,),
+                    )
+                    if cur.rowcount > 0:
+                        deleted = True
+                        break
+
+        if deleted:
+            return jsonify(success=True, message=f"Registration {registration_id} deleted successfully.")
+        return jsonify(success=False, message="Registration not found."), 404
+    except sqlite3.Error:
+        app.logger.exception("Could not delete registration")
+        return jsonify(message="Database error deleting registration."), 500
+
+
+@app.post("/api/admin/registrations/delete")
+def admin_delete_registration_post():
+    if session.get("is_admin") is not True:
+        return jsonify(message="Admin login required."), 401
+
+    data = request.get_json(silent=True) or {}
+    registration_id = data.get("registration_id")
+    academic_year = data.get("academic_year")
+
+    if not registration_id:
+        return jsonify(message="Registration ID is required."), 400
+
+    deleted = False
+    try:
+        with connect_db() as db:
+            if academic_year and academic_year in YEAR_TABLES:
+                table = YEAR_TABLES[academic_year]
+                cur = db.execute(
+                    f"DELETE FROM {table} WHERE registration_id = ?",
+                    (registration_id,),
+                )
+                if cur.rowcount > 0:
+                    deleted = True
+            else:
+                for table in YEAR_TABLES.values():
+                    cur = db.execute(
+                        f"DELETE FROM {table} WHERE registration_id = ?",
+                        (registration_id,),
+                    )
+                    if cur.rowcount > 0:
+                        deleted = True
+                        break
+
+        if deleted:
+            return jsonify(success=True, message=f"Registration {registration_id} deleted successfully.")
+        return jsonify(success=False, message="Registration not found."), 404
+    except sqlite3.Error:
+        app.logger.exception("Could not delete registration")
+        return jsonify(message="Database error deleting registration."), 500
+
+
+@app.post("/api/admin/registrations/clear")
+def admin_clear_registrations():
+    if session.get("is_admin") is not True:
+        return jsonify(message="Admin login required."), 401
+
+    data = request.get_json(silent=True) or {}
+    academic_year = data.get("academic_year", "all")
+
+    try:
+        with connect_db() as db:
+            if academic_year in YEAR_TABLES:
+                table = YEAR_TABLES[academic_year]
+                db.execute(f"DELETE FROM {table}")
+            elif academic_year == "all":
+                for table in YEAR_TABLES.values():
+                    db.execute(f"DELETE FROM {table}")
+            else:
+                return jsonify(message="Invalid academic year."), 400
+
+        return jsonify(success=True, message="Registrations cleared successfully.")
+    except sqlite3.Error:
+        app.logger.exception("Could not clear registrations")
+        return jsonify(message="Database error clearing registrations."), 500
+
+
 @app.post("/api/registrations")
 def register():
     data = request.get_json(silent=True)

@@ -74,6 +74,7 @@ export default function Admin() {
   const [selectedYear, setSelectedYear] = useState("all");
   const [laptopFilter, setLaptopFilter] = useState("all");
   const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'table'
+  const [deletingId, setDeletingId] = useState(null);
 
   function showToast(text) {
     setToast(text);
@@ -146,6 +147,63 @@ export default function Admin() {
   function copyToClipboard(text, label) {
     navigator.clipboard.writeText(text);
     showToast(`Copied ${label}: ${text}`);
+  }
+
+  // Delete registration function
+  async function handleDeleteRegistration(registrationId, academicYear, leadName) {
+    const confirmPrompt = leadName
+      ? `Are you sure you want to delete registration ${registrationId} (${leadName})? This cannot be undone.`
+      : `Are you sure you want to delete registration ${registrationId}? This cannot be undone.`;
+
+    if (!window.confirm(confirmPrompt)) {
+      return;
+    }
+
+    setDeletingId(registrationId);
+    try {
+      let response = await fetch(
+        `/api/admin/registrations/${encodeURIComponent(registrationId)}?academic_year=${encodeURIComponent(academicYear)}`,
+        {
+          method: "DELETE",
+          credentials: "same-origin",
+        }
+      );
+
+      if (!response.ok && response.status === 405) {
+        response = await fetch("/api/admin/registrations/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            registration_id: registrationId,
+            academic_year: academicYear,
+          }),
+        });
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.message || "Failed to delete registration.");
+        return;
+      }
+
+      setRegistrations((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [academicYear]: (prev[academicYear] || []).filter(
+            (item) => item.registration_id !== registrationId
+          ),
+        };
+      });
+
+      showToast(`Deleted registration ${registrationId}!`);
+    } catch {
+      showToast("Network error while deleting registration.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   // Export CSV function
@@ -1129,6 +1187,83 @@ export default function Admin() {
           background: rgba(255, 255, 255, 0.02);
         }
 
+        .btn-card-delete {
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          color: #f87171;
+          border-radius: 8px;
+          padding: 4px 8px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .btn-card-delete:hover:not(:disabled) {
+          background: rgba(239, 68, 68, 0.28);
+          border-color: rgba(239, 68, 68, 0.55);
+          color: #fca5a5;
+          transform: translateY(-1px);
+        }
+
+        .btn-card-delete:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-delete-row {
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          color: #f87171;
+          border-radius: 8px;
+          padding: 5px 11px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .btn-delete-row:hover:not(:disabled) {
+          background: rgba(239, 68, 68, 0.28);
+          border-color: rgba(239, 68, 68, 0.55);
+          color: #fca5a5;
+          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+          transform: translateY(-1px);
+        }
+
+        .btn-delete-row:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-text-delete {
+          background: transparent;
+          border: 0;
+          color: #f87171;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+
+        .btn-text-delete:hover:not(:disabled) {
+          color: #fca5a5;
+          background: rgba(239, 68, 68, 0.15);
+        }
+
+        .btn-text-delete:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         /* Empty State */
         .empty-state {
           text-align: center;
@@ -1466,6 +1601,7 @@ export default function Admin() {
                       <th>Laptop</th>
                       <th>Team Members</th>
                       <th>Submitted</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1538,6 +1674,17 @@ export default function Admin() {
                             <td style={{ color: "#71717a", fontSize: 12 }}>
                               {row.created_at || "—"}
                             </td>
+                            <td style={{ textAlign: "center" }}>
+                              <button
+                                type="button"
+                                className="btn-delete-row"
+                                onClick={() => handleDeleteRegistration(row.registration_id, year.key, row.team_lead_name)}
+                                disabled={deletingId === row.registration_id}
+                                title="Delete this participant entry"
+                              >
+                                {deletingId === row.registration_id ? "..." : "🗑️ Delete"}
+                              </button>
+                            </td>
                           </tr>
                         );
                       });
@@ -1602,13 +1749,25 @@ export default function Admin() {
                                       📋 {row.registration_id}
                                     </span>
 
-                                    <span
-                                      className={`laptop-badge ${row.laptop_availability === "Yes" ? "yes" : "no"}`}
-                                    >
-                                      {row.laptop_availability === "Yes"
-                                        ? "💻 Laptop Ready"
-                                        : "⚠️ Needs Laptop"}
-                                    </span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      <span
+                                        className={`laptop-badge ${row.laptop_availability === "Yes" ? "yes" : "no"}`}
+                                      >
+                                        {row.laptop_availability === "Yes"
+                                          ? "💻 Laptop Ready"
+                                          : "⚠️ Needs Laptop"}
+                                      </span>
+
+                                      <button
+                                        type="button"
+                                        className="btn-card-delete"
+                                        onClick={() => handleDeleteRegistration(row.registration_id, year.key, row.team_lead_name)}
+                                        disabled={deletingId === row.registration_id}
+                                        title="Delete this registration entry"
+                                      >
+                                        {deletingId === row.registration_id ? "..." : "🗑️ Delete"}
+                                      </button>
+                                    </div>
                                   </div>
 
                                   <div className="leader-banner">
@@ -1657,7 +1816,18 @@ export default function Admin() {
 
                                 <div className="card-footer">
                                   <span>{year.label}</span>
-                                  <span>{row.created_at ? new Date(row.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Just now"}</span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span>{row.created_at ? new Date(row.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Just now"}</span>
+                                    <button
+                                      type="button"
+                                      className="btn-text-delete"
+                                      onClick={() => handleDeleteRegistration(row.registration_id, year.key, row.team_lead_name)}
+                                      disabled={deletingId === row.registration_id}
+                                      title="Delete registration entry"
+                                    >
+                                      {deletingId === row.registration_id ? "..." : "🗑️ Delete"}
+                                    </button>
+                                  </div>
                                 </div>
                               </article>
                             );
