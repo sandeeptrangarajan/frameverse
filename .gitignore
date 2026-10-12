@@ -6,3 +6,4 @@
 **/*.db
 **/*.sqlite
 frontend/dist/
+.vercel/

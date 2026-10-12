@@ -20,7 +20,8 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FRAMEVERSE_COOKIE_SECURE", "false").lower() == "true"
 
-DB_PATH = Path(os.environ.get("FRAMEVERSE_DATABASE_PATH", str(BASE_DIR / "frameverse.db")))
+default_db_dir = Path("/tmp") if os.environ.get("VERCEL") else BASE_DIR
+DB_PATH = Path(os.environ.get("FRAMEVERSE_DATABASE_PATH", str(default_db_dir / "frameverse.db")))
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 YEAR_TABLES = {

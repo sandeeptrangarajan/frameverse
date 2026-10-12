@@ -96,7 +96,11 @@ Deploy to Render using the included `render.yaml` Blueprint, which builds the fr
 
 Full step-by-step instructions (including persistence checks) are in **[DEPLOY_RENDER.md](DEPLOY_RENDER.md)**.
 
-> Persistent disks on Render require a paid instance. For multi-instance or larger scale, switch to managed PostgreSQL.
+### Vercel Deployment
+
+To deploy to Vercel (React frontend on Edge CDN + Flask serverless backend), see **[DEPLOY_VERCEL.md](DEPLOY_VERCEL.md)**.
+
+> Note: SQLite on serverless platforms like Vercel uses ephemeral `/tmp` storage. For permanent database persistence across cold starts, refer to the guidance in `DEPLOY_VERCEL.md`.
 
 ## Notes
 
