@@ -247,23 +247,21 @@ def register():
         ), 500
 
 
-@app.get("/")
-def frontend_index():
-    if not (FRONTEND_DIST / "index.html").is_file():
-        return jsonify(message="Frontend build not found. Run npm run build in the frontend folder."), 503
-    return send_from_directory(FRONTEND_DIST, "index.html")
-
-
-@app.get("/<path:asset_path>")
-def frontend_assets(asset_path):
-    # API endpoints are registered above; this route serves built frontend assets
-    # and supports refreshing client-side routes such as /admin.
-    requested = FRONTEND_DIST / asset_path
-    if requested.is_file():
-        return send_from_directory(FRONTEND_DIST, asset_path)
-    if (FRONTEND_DIST / "index.html").is_file():
+if not os.environ.get("VERCEL"):
+    @app.get("/")
+    def frontend_index():
+        if not (FRONTEND_DIST / "index.html").is_file():
+            return jsonify(message="Frontend build not found. Run npm run build in the frontend folder."), 503
         return send_from_directory(FRONTEND_DIST, "index.html")
-    return jsonify(message="Frontend build not found."), 404
+
+    @app.get("/<path:asset_path>")
+    def frontend_assets(asset_path):
+        requested = FRONTEND_DIST / asset_path
+        if requested.is_file():
+            return send_from_directory(FRONTEND_DIST, asset_path)
+        if (FRONTEND_DIST / "index.html").is_file():
+            return send_from_directory(FRONTEND_DIST, "index.html")
+        return jsonify(message="Frontend build not found."), 404
 
 
 if __name__ == "__main__":

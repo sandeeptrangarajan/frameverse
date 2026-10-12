@@ -1,14 +1,14 @@
 {
   "version": 2,
   "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
-  "outputDirectory": "dist",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
     },
     {
-      "source": "/((?!.*\\.).*)",
+      "source": "/admin",
       "destination": "/index.html"
     }
   ]

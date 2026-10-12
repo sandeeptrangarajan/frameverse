@@ -8,3 +8,5 @@
 frontend/dist/
 dist/
 .vercel/
+.vercel
+.env*
